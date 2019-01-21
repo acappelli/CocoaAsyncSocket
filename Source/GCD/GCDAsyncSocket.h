@@ -46,6 +46,8 @@ extern NSString *const GCDAsyncSocketSSLCipherSuites;
 extern NSString *const GCDAsyncSocketSSLDiffieHellmanParameters;
 #endif
 
+extern NSString *const GCDAsyncSocketSSLClientSideAuthenticate;
+
 #define GCDAsyncSocketLoggingContext 65535
 
 

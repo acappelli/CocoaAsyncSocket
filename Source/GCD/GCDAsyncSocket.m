@@ -129,6 +129,8 @@ NSString *const GCDAsyncSocketSSLCipherSuites = @"GCDAsyncSocketSSLCipherSuites"
 NSString *const GCDAsyncSocketSSLDiffieHellmanParameters = @"GCDAsyncSocketSSLDiffieHellmanParameters";
 #endif
 
+NSString *const GCDAsyncSocketSSLClientSideAuthenticate = @"GCDAsyncSocketSSLClientSideAuthenticate";
+
 enum GCDAsyncSocketFlags
 {
 	kSocketStarted                 = 1 <<  0,  // If set, socket has been started (accepting/connecting)
@@ -6856,13 +6858,16 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 	BOOL shouldManuallyEvaluateTrust = [[tlsSettings objectForKey:GCDAsyncSocketManuallyEvaluateTrust] boolValue];
 	if (shouldManuallyEvaluateTrust)
 	{
-		if (isServer)
+		/*if (isServer)
 		{
 			[self closeWithError:[self otherError:@"Manual trust validation is not supported for server sockets"]];
 			return;
 		}
 		
-		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);
+		status = SSLSetSessionOption(sslContext, kSSLSessionOptionBreakOnServerAuth, true);*/
+        SSLSessionOption option = isServer ? kSSLSessionOptionBreakOnClientAuth : kSSLSessionOptionBreakOnServerAuth;
+        status = SSLSetSessionOption(sslContext, option, true);
+        
 		if (status != noErr)
 		{
 			[self closeWithError:[self otherError:@"Error in SSLSetSessionOption"]];
@@ -7125,6 +7130,24 @@ static OSStatus SSLWriteFunction(SSLConnectionRef connection, const void *data, 
 		return;
 	}
 	#endif
+    
+    value = [tlsSettings objectForKey:GCDAsyncSocketSSLClientSideAuthenticate];
+    if ([value isKindOfClass:[NSNumber class]])
+    {
+        status = SSLSetClientSideAuthenticate(sslContext, [value intValue]);
+        if (status != noErr)
+        {
+            [self closeWithError: [self otherError:@"Error in SSLSetClientSideAuthenticate"]];
+            return;
+        }
+    }
+    else if (value)
+    {
+        NSAssert(NO, @"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate. Value must be of type NSNumber.");
+        
+        [self closeWithError:[self otherError:@"Invalid value for GCDAsyncSocketSSLClientSideAuthenticate."]];
+        return;
+    }
 	
 	// DEPRECATED checks
 	
